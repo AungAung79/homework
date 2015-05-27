@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy 2 elements to &apos;tagOccurRatio/src/user&apos;&#x0A;- Original project: &apos;tagOccurRatio&apos;&#x0A;- Destination element: &apos;tagOccurRatio/src/user&apos;&#x0A;- Original elements:&#x0A;     org.ics.llc.textRank.PostsHandler4Words.java&#x0A;     org.ics.llc.textRank.ParseTest.java" description="Copy compilation units" destination="/src&lt;user" element1="/src&lt;org.ics.llc.textRank{PostsHandler4Words.java" element2="/src&lt;org.ics.llc.textRank{ParseTest.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1414908193181" units="2" version="1.0"/>
+</session>

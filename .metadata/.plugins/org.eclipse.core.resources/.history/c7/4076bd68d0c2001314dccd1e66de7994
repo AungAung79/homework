@@ -1,0 +1,109 @@
+package ics.alg.BPMF;
+
+import java.io.File;
+import java.nio.ByteOrder;
+import java.lang.Math.*;
+
+import org.bridj.Pointer;
+import static org.bridj.Pointer.*;
+import org.la4j.matrix.Matrix;
+import org.la4j.vector.Vector;
+
+import com.nativelibs4java.opencl.*;
+import com.nativelibs4java.opencl.CLMem.Usage;
+import com.nativelibs4java.util.*;
+
+public class SampleU {
+	Matrix UMatrix;
+	Matrix VMatrix;
+	int N;
+	int M;
+	int D;
+	double alphe;
+	double[][] R;
+	boolean[][] I;
+	Matrix lamdaUMatrix;
+	Matrix lamdaUMatrixStar;
+	Vector muU;
+	Vector muUStar;
+	
+	public SampleU(Matrix uMatrix, Matrix vMatrix, int n, int m, int d, double al, double[][] r, boolean[][] i,
+			Matrix lamdauMatrix, Matrix lamdaumatrixStar, Vector muu, Vector muuStar)
+	{
+		UMatrix = uMatrix;
+		VMatrix = vMatrix;
+		N = n;
+		M = m;
+		D = d;
+		alphe = al;
+		R = r;
+		I = i;
+		lamdaUMatrix = lamdauMatrix;
+		lamdaUMatrixStar = lamdaumatrixStar;
+		muU = muu;
+		muUStar = muuStar;
+	}
+	
+	public void sample()
+	{
+		CLContext context = JavaCL.createBestContext();
+        CLQueue queue = context.createDefaultQueue();
+        ByteOrder byteOrder = context.getByteOrder();
+        
+        Pointer<Float>
+        	uMatrixPtr = allocateFloats(D * N).order(byteOrder),
+        	vMatrixPtr = allocateFloats(D * M).order(byteOrder),
+        	rPtr = allocateFloats(N * M).order(byteOrder),
+        	lamdauMatrixPtr = allocateFloats(D * D).order(byteOrder),
+        	lamdauMatrixStarPtr = allocateFloats(D * D).order(byteOrder),
+        	muuPtr = allocateFloats(D).order(byteOrder),
+        	muuStarPtr = allocateFloats(D).order(byteOrder);
+        Pointer<Boolean> iPtr = allocateBooleans(N * M).order(byteOrder);
+
+        // Create OpenCL input buffers (using the native memory pointers aPtr and bPtr) :
+        CLBuffer<Float> 
+            uMatrixBuf = context.createFloatBuffer(Usage.InputOutput, uMatrixPtr),
+            vMatrixBuf = context.createFloatBuffer(Usage.InputOutput, vMatrixPtr),
+            rBuf = context.createFloatBuffer(Usage.InputOutput, rPtr),
+            lamdaUMatrixBuf = context.createFloatBuffer(Usage.InputOutput, lamdauMatrixPtr),
+            lamdaUMatrixStarBuf = context.createFloatBuffer(Usage.InputOutput, lamdauMatrixStarPtr),
+            muUBuf = context.createFloatBuffer(Usage.InputOutput, muuPtr),
+            muUStarBuf = context.createFloatBuffer(Usage.InputOutput, muuStarPtr);
+        
+        CLBuffer<Boolean> iBuf = context.createBuffer(Usage.InputOutput, iPtr);
+
+        // Create an OpenCL output buffer :
+        CLBuffer<Float> out = context.createFloatBuffer(Usage.Output, D * N);
+
+        try
+        {
+        	// Read the program sources and compile them :
+        	String src = IOUtils.readText(new File("openCL/Sample.cl"));
+        	CLProgram program = context.createProgram(src);
+        	
+        	long ct = System.currentTimeMillis();
+        	// Get and call the kernel :
+        	CLKernel sampleKernel = program.createKernel("sample");
+        	sampleKernel.setArgs(uMatrixBuf,vMatrixBuf,rBuf,iBuf,lamdaUMatrixBuf,lamdaUMatrixStarBuf,muUBuf,muUStarBuf,D,N,M,alphe);
+        	CLEvent sampleEvt = sampleKernel.enqueueNDRange(queue, new int[] { N });
+        	
+//        	CLKernel addFloatsKernel = program.createKernel("add_floats");
+//        	addFloatsKernel.setArgs(a, b, out, n);
+//        	CLEvent addEvt = addFloatsKernel.enqueueNDRange(queue, new int[] { n, n }, fillEvt);
+        
+        	Pointer<Float> outPtr = uMatrixBuf.read(queue, sampleEvt); // blocks until add_floats finished
+
+        	ct = System.currentTimeMillis() - ct;
+        	
+        	System.out.println("Time: " + ct + " ms");
+        	
+        	// Print the first n output values :
+        	for (int i = 0; i < D; i++)
+        		for (int j = 0; j < N; j++)
+        			System.out.println("out[" + i + "," + j + "] = " + outPtr.get(i * D + j));
+        } catch(Exception e)
+        {
+        	System.out.println(e);
+        }
+	}
+}

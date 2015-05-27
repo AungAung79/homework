@@ -1,0 +1,8 @@
+INDEX VERSION 1.127+/Users/jimmy/homework/.metadata/.plugins/org.eclipse.jdt.core
+2594022361.index
+2068950101.index
+1602254793.index
+3049473850.index
+1966487089.index
+2391286453.index
+2219899502.index

@@ -1,0 +1,60 @@
+#pragma OPENCL EXTENSION cl_amd_printf : enable
+#define DNUM 30
+#define NNUM 943
+#define MNUM 1682
+
+__kernel void fill_in_values(__global float* a, __global float* b, int n) 
+{
+    int i = get_global_id(0);
+    int j = get_global_id(1);
+    int NUM = get_global_size(0);
+    if (i >= NUM && j >= NUM)
+        return;
+
+    a[i * NUM + j] = (float)j;
+    b[i * NUM + j] = (float)j;
+}
+
+float hehe(__global float* a, int m, int n)
+{
+	float temp = 0;
+	for(int i = 0; i < m; i++)
+		for(int j = 0; j < m; j++)
+		{
+			temp = temp + a[i * n + j];
+		}
+	return temp;
+}
+
+void addMatrix(__global float* aAdd, __global float* bAdd, float* outAdd, int m, int n)
+{
+	for(int i = 0; i < m; i++)
+	{
+		for(int j = 0; j < n; j++)
+		{
+			outAdd[i * m + j] = aAdd[i * m + j] + bAdd[i * m + j];
+		}
+	}
+}
+
+__kernel void add_floats(__global const float* a, __global const float* b, __global float* out, int n) 
+{
+    int i = get_global_id(0);
+    int j = get_global_id(1);
+    if (i >= n && j >= n)
+        return;
+
+	//for(int k = 0; k < n; k++)
+	//{
+    	//out[i * n + j] = out[i * n + j] + (float)a[i * n + k] * (float)b[k * n + j];
+    //}
+    float buf[NNUM * NNUM];
+    addMatrix(a,b,buf,n,n);
+    
+    //printf("%d\n",nimeia[0]);
+    
+    float* temp = buf + 1 * n;
+    out[i * n + j] = out[i * n + j] + temp[2];
+    //out[i * n + j] = a[i * n + j] * b[i * n + j];
+}
+

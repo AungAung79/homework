@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy 2 elements to &apos;tagOccurRatio/src/parse&apos;&#x0A;- Original project: &apos;StackOverflow&apos;&#x0A;- Destination element: &apos;tagOccurRatio/src/parse&apos;&#x0A;- Original elements:&#x0A;     org.ics.llc.dataProcess.ParseTest.java&#x0A;     org.ics.llc.dataProcess.PostsHandler4Words.java" description="Copy compilation units" destination="=tagOccurRatio/src&lt;parse" element1="/src&lt;org.ics.llc.dataProcess{ParseTest.java" element2="/src&lt;org.ics.llc.dataProcess{PostsHandler4Words.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1416403116872" units="2" version="1.0"/>
+</session>

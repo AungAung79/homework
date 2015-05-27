@@ -1,0 +1,34 @@
+package org.ics.llc.compile;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+public class JavaCompile {
+	public void compile()
+	{
+		try {
+			Process shell = Runtime.getRuntime().exec("cmd.exe");
+			final InputStream input = shell.getInputStream();
+			final OutputStream output = shell.getOutputStream();
+			Thread request = new Thread(){
+				public void run(){
+					try {
+						output.write("dir".getBytes());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			};
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public static void main(String[] args)
+	{
+		
+	}
+}

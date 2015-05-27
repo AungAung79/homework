@@ -1,0 +1,282 @@
+package org.ics.dataanalysis.dynamicqfeature;
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.StringTokenizer;
+
+
+/**
+ * Find the features for Questions.
+ * @author Jinny
+ *
+ */
+public class NewQuestionFeatureFinder2 {
+	
+	private ArrayList<String> questions;
+	private HashMap<String, NewFeatureOfQuestion2> Features; // String is the question postid
+	private HashSet<String> questionsWithAnswers; // only record question with answers
+	//private HashSet<String> questionsWithoutAnswers;
+	//private HashMap<String, NewFeature4Time> postRep; // for reputation re-builing, string is the postid
+	private LinkedList<NewFeature4Time> timeUser; // string is userid, Long is time
+	private HashMap<String, Integer> userRep; // user's rep at a momemnt
+	private HashMap<String, Integer> userQcount; // user's previous questions at a moment
+	private HashMap<String, String> postUser; // connect post to user
+	
+	// the seconds of a day
+	//final int DAYSECONDS = 86400;
+	private String str = "SO/";
+	
+	/**
+	 * Find all the thread based features.
+	 * Based on the output of the findAnswerFeatures() method.
+	 */
+	public void findAllFeatures() {
+		FileReader fr;
+		BufferedReader br;
+		StringTokenizer st = null;
+		
+		Features = new HashMap<String, NewFeatureOfQuestion2>();
+		questionsWithAnswers = new HashSet<String>();
+		//questionsWithoutAnswers = new HashSet<String>();
+		questions = new ArrayList<String>();
+		//postRep = new HashMap<String, NewFeature4Time>();
+		timeUser = new LinkedList<NewFeature4Time>();
+		userRep = new HashMap<String, Integer>();
+		userQcount = new HashMap<String, Integer>();
+		postUser = new HashMap<String, String>();
+		
+		try {
+			String line = null;
+
+			fr = new FileReader(str+"QuestionID.txt");
+			br = new BufferedReader(fr);
+			
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String postid = st.nextToken();
+				questions.add(postid);
+				questionsWithAnswers.add(postid);
+			}
+			
+			// PostId AcceptedAnswerId CreationDate Score ViewCount BodyLen UserID
+			// TitleLen AnswerCount CommentCount FavoriteCouont
+			fr = new FileReader(str+"Questions.txt");
+			br = new BufferedReader(fr);
+			
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String postid = st.nextToken();
+				if(postid.equals("#"))
+					continue;
+				
+				st.nextToken();
+				Long ctime = Long.parseLong(st.nextToken());
+				String score = st.nextToken();
+				st.nextToken(); // viewCount
+				st.nextToken(); // bodyLen
+				String user = st.nextToken();
+				//st.nextToken(); // tileLen
+				//st.nextToken(); // answerCount
+				//st.nextToken(); // commentCount
+				//st.nextToken(); // favorCount
+				
+				if(questionsWithAnswers.contains(postid)) {
+					NewFeature4Time f4r = new NewFeature4Time();//
+					f4r.setTime(ctime);
+					f4r.setUserid(user);
+					f4r.setPostid(postid);
+					
+					NewFeatureOfQuestion2 fot = new NewFeatureOfQuestion2();
+					Features.put(postid, fot);
+				
+					fot.setScore(Integer.parseInt(score));
+					
+					timeUser.add(f4r);
+					postUser.put(postid, user);
+					
+				} //else {
+				//	questionsWithoutAnswers.add(postid);
+				//}
+			}
+			
+			fr = new FileReader(str+"Answers.txt");
+			br = new BufferedReader(fr);
+			
+			// PostID ParentID CreationDate Score BodyLength UserID CommentCount
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String postid = st.nextToken();
+				if(postid.equals("#"))
+					continue;
+				
+				String parent = st.nextToken();
+				st.nextToken();
+				st.nextToken();
+				st.nextToken();
+				String user = st.nextToken();
+				
+				if(questionsWithAnswers.contains(parent))
+					postUser.put(postid, user);
+			}
+			
+			// UserId Reputation
+			fr = new FileReader(str+"Users.txt");
+			br = new BufferedReader(fr);
+			
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String userid = st.nextToken();
+				if(userid.equals("#"))
+					continue;
+				
+				userRep.put(userid, 0);
+				userQcount.put(userid, 0);
+			}
+			
+			// PostId AcceptedAnswerId CreationDate Score ViewCount BodyLen UserID
+			// TitleLen AnswerCount CommentCount FavoriteCouont
+			fr = new FileReader(str+"Questions.txt");
+			br = new BufferedReader(fr);
+			
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String postid = st.nextToken();
+				if(postid.equals("#"))
+					continue;
+				if(!questionsWithAnswers.contains(postid))
+					continue;
+				
+				st.nextToken();
+				st.nextToken();
+				st.nextToken();
+				st.nextToken();
+				st.nextToken();
+				String user = st.nextToken();
+				
+				if(!userQcount.containsKey(user)) { // in math data, one user (15363) does not have profiles 
+					System.out.println(user);
+					userRep.put(user, 0);
+					userQcount.put(user, 0);
+				}
+				NewFeatureOfQuestion2 fot = Features.get(postid);
+				fot.setUserQuesCount(userQcount.get(user));
+				int value = userQcount.get(user);
+				userQcount.put(user, value + 1);
+				
+			}
+			
+			// PostId VoteType CreationTime
+			fr = new FileReader(str+"Votes.txt");
+			br = new BufferedReader(fr);
+			
+			int index = 0;
+			long duetime = timeUser.get(index).getTime();
+			int max = timeUser.size();
+			
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String postid = st.nextToken();
+				if(postid.equals("#"))
+					continue;
+				if(!postUser.containsKey(postid))
+					continue;
+				
+				int type = Integer.parseInt(st.nextToken());
+				long vtime = Long.parseLong(st.nextToken());
+				
+				while(vtime >= duetime) {// compare time, and output the rep feature for an question
+					String user = timeUser.get(index).getUserid();
+					String post = timeUser.get(index).getPostid();
+					NewFeatureOfQuestion2 fot = Features.get(post);
+					fot.setUserRep(userRep.get(user));
+					
+					index++;
+					if(index >= max) {
+						break;
+					}
+					duetime = timeUser.get(index).getTime();
+				}
+				if(index >= max) {
+					break;
+				}
+				String user = postUser.get(postid);
+				if(!userRep.containsKey(user)) { // in math data, one user (15367) does not have profiles 
+					System.out.println(user);
+					userRep.put(user, 0);
+					userQcount.put(user, 0);
+				}
+				int prep = userRep.get(user);
+				if(type == 1) {
+					userRep.put(user, prep + 15);
+				} else if(type == 2) {
+					if(questionsWithAnswers.contains(postid))
+						userRep.put(user, prep + 5);
+					else
+						userRep.put(user, prep + 10);
+				} else if(type == 3) {
+					userRep.put(user, prep - 2);
+				} else if(type == 12) {
+					userRep.put(user, prep - 100);
+				}
+				
+			}
+			
+		} catch( IOException e ) {
+			throw new RuntimeException(e);
+		}
+
+	}
+
+
+	public void outputAllFeatures() {
+		PrintStream ps = null;
+		FileOutputStream out = null;
+		try {
+			out = new FileOutputStream(str+"AllQuestionFeatureNew2.txt");
+			ps = new PrintStream(out);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		
+		for (int i = 0; i < questions.size(); i++) {
+			String postid = questions.get(i);
+			NewFeatureOfQuestion2 foq = Features.get(postid);
+			ps.println(foq.getScore() + " "
+					+ foq.getUserRep() + " " + foq.getUserQuesCount());
+		}
+	}
+	
+	
+	public static void main(String argv[]) {
+		NewQuestionFeatureFinder2 uff = new NewQuestionFeatureFinder2();
+		uff.findAllFeatures();
+		uff.outputAllFeatures();
+	}
+
+}

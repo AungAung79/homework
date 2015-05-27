@@ -1,0 +1,52 @@
+package org.ics.llc.compile;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+public class JavaCompile {
+	public void compile()
+	{
+		try {
+			Process shell = Runtime.getRuntime().exec("cd parsed-data");
+			final InputStream input = shell.getInputStream();
+			final OutputStream output = shell.getOutputStream();
+			Thread request = new Thread(){
+				public void run(){
+					try {
+						output.write("cd parsed-data".getBytes());
+						output.write("javac QuestionsCode_1.txt".getBytes());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			};
+			Thread response = new Thread(){
+				public void run()
+				{
+					int c = -1;
+					byte[] buf = new byte[512];
+					try {
+						while((c = input.read(buf)) != -1)
+						{
+							System.out.println(new String(buf, 0, c));
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			};
+			request.start();
+			response.start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public static void main(String[] args)
+	{
+		JavaCompile jc = new JavaCompile();
+		jc.compile();
+	}
+}

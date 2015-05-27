@@ -1,0 +1,292 @@
+package org.ics.dataanalysis.dynamicafeature;
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.StringTokenizer;
+
+
+/**
+ * Find answer features.
+ * Use sihan's machine.
+ * @author Jinny
+ *
+ */
+public class NewAnswerFeatureFinder2 {
+	
+	private ArrayList<String> answers;
+	private HashSet<String> answersSet;
+	//private HashSet<String> questionsSet;
+	private HashMap<String, NewFeatureOfAnswer2> Features; // String is the question postid
+	//private HashMap<String, String> aq;
+	//private HashMap<String, NewFeature4Time> postRep; // for reputation re-builing, string is the postid
+	private LinkedList<NewFeature4Time> timeUser; // string is userid, Long is time
+	private HashMap<String, Integer> userRep; // user's rep at a momemnt
+	private HashMap<String, Integer> userAcount;
+	private HashMap<String, String> postUser;
+	
+	// the seconds of a day
+	//final int DAYSECONDS = 86400;
+	private String str = "SO/";
+	
+	/**
+	 * Find all the thread based features.
+	 * Based on the output of the findAnswerFeatures() method.
+	 */
+	public void findAllFeatures() {
+		FileReader fr;
+		BufferedReader br;
+		StringTokenizer st = null;
+		
+		answers = new ArrayList<String>();
+		answersSet = new HashSet<String>();
+		//questionsSet = new HashSet<String>();
+		Features = new HashMap<String, NewFeatureOfAnswer2>();
+		//aq = new HashMap<String, String>();
+		timeUser = new LinkedList<NewFeature4Time>();
+		userRep = new HashMap<String, Integer>();
+		userAcount = new HashMap<String, Integer>();
+		postUser = new HashMap<String, String>();
+		
+		try {
+			String line = null;
+			
+//			fr = new FileReader("math/QuestionID.txt");
+//			br = new BufferedReader(fr);
+//			
+//			while((line=br.readLine()) != null) {
+//				st = new StringTokenizer(line);
+//				//space line
+//				if(!st.hasMoreTokens()) 
+//					continue;
+//				String postid = st.nextToken();
+//				
+//				questionsSet.add(postid);
+//			}
+			
+			// PostId AcceptedAnswerId CreationDate Score ViewCount BodyLen UserID
+			// TitleLen AnswerCount CommentCount FavoriteCouont
+			fr = new FileReader(str+"Questions.txt");
+			br = new BufferedReader(fr);
+			
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String postid = st.nextToken();
+				if(postid.equals("#"))
+					continue;
+//				if(!questionsSet.contains(postid)) {
+//					//questionsWithoutAnswers.add(postid);
+//					continue;
+//				}
+				
+				st.nextToken();
+				st.nextToken();
+				st.nextToken();
+				st.nextToken();
+				st.nextToken();
+				String user = st.nextToken();
+				postUser.put(postid, user);
+			}
+			
+			fr = new FileReader(str+"AnswerID-24.txt");
+			br = new BufferedReader(fr);
+			
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String postid = st.nextToken();
+				answers.add(postid);
+				answersSet.add(postid);
+			}
+			
+			// PostID ParentID CreationDate Score BodyLength UserID CommentCount
+			fr = new FileReader(str+"Answers.txt");
+			br = new BufferedReader(fr);
+			
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String postid = st.nextToken();
+				if(postid.equals("#"))
+					continue;
+				if(!answersSet.contains(postid))
+					continue;
+				
+				st.nextToken();
+				//aq.put(postid, parent);
+				
+				Long atime = Long.parseLong(st.nextToken());
+				int score = Integer.parseInt(st.nextToken());
+				st.nextToken();
+				String user = st.nextToken();
+				postUser.put(postid, user);
+				
+				NewFeature4Time f4r = new NewFeature4Time();
+				f4r.setTime(atime);
+				f4r.setUserid(user);
+				f4r.setPostid(postid);
+				timeUser.add(f4r);
+				
+				NewFeatureOfAnswer2 fot = new NewFeatureOfAnswer2();
+				Features.put(postid, fot);
+				fot.setScore(score);
+			}
+			
+			// UserId Reputation
+			fr = new FileReader(str+"Users.txt");
+			br = new BufferedReader(fr);
+			
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String userid = st.nextToken();
+				if(userid.equals("#"))
+					continue;
+				
+				userRep.put(userid, 0);
+				userAcount.put(userid, 0);
+			}
+			
+			// PostID ParentID CreationDate Score BodyLength UserID CommentCount
+			fr = new FileReader(str+"Answers.txt");
+			br = new BufferedReader(fr);
+			
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String postid = st.nextToken();
+				if(postid.equals("#"))
+					continue;
+				if(!answersSet.contains(postid))
+					continue;
+				
+				st.nextToken();
+				st.nextToken();
+				st.nextToken();
+				st.nextToken();
+				String user = st.nextToken();
+				
+				if(!userAcount.containsKey(user)) { // in math data, one user (15367) does not have profiles 
+					System.out.println(user);
+					userRep.put(user, 0);
+					userAcount.put(user, 0);
+				}
+				NewFeatureOfAnswer2 fot = Features.get(postid);
+				fot.setUserAnswCount(userAcount.get(user));
+				int value = userAcount.get(user);
+				userAcount.put(user, value + 1);
+			}
+			
+			// PostId VoteType CreationTime
+			fr = new FileReader(str+"Votes.txt");
+			br = new BufferedReader(fr);
+			
+			int index = 0;
+			long duetime = timeUser.get(index).getTime();// post time of the index-th answer
+			int max = timeUser.size();
+			
+			while((line=br.readLine()) != null) {
+				st = new StringTokenizer(line);
+				//space line
+				if(!st.hasMoreTokens()) 
+					continue;
+				String postid = st.nextToken();
+				if(postid.equals("#"))
+					continue;
+				if(!postUser.containsKey(postid))
+					continue;
+				
+				int type = Integer.parseInt(st.nextToken());
+				long vtime = Long.parseLong(st.nextToken());
+				
+				while(vtime >= duetime) {// compare time, and output the rep feature for an answer
+					String user = timeUser.get(index).getUserid();
+					String post = timeUser.get(index).getPostid();
+					NewFeatureOfAnswer2 fot = Features.get(post);
+					fot.setUserRep(userRep.get(user));
+					
+					index++;
+					if(index % 10000 == 0) {
+						System.out.println(index);
+					}
+					if(index >= max) {
+						break;
+					}
+					duetime = timeUser.get(index).getTime();
+				}
+				if(index >= max) {
+					break;
+				}
+				String user = postUser.get(postid);
+				if(!userRep.containsKey(user)) { // not happened
+					System.out.println(user);
+					userRep.put(user, 0);
+					//userAcount.put(user, 0);
+				}
+				int prep = userRep.get(user);
+				if(type == 1) {
+					userRep.put(user, prep + 15);
+				} else if(type == 2) {
+					if(answersSet.contains(postid))
+						userRep.put(user, prep + 10);
+					else
+						userRep.put(user, prep + 5);
+				} else if(type == 3) {
+					userRep.put(user, prep - 2);
+				} else if(type == 12) {
+					userRep.put(user, prep - 100);
+				}
+				//System.out.println(userRep.get("45"));
+			}
+			
+		} catch( IOException e ) {
+			throw new RuntimeException(e);
+		}
+
+	}
+
+
+	public void outputAllFeatures() {
+		PrintStream ps = null;
+		FileOutputStream out = null;
+		try {
+			out = new FileOutputStream(str+"AllAnswerFeatureNew2.txt");
+			ps = new PrintStream(out);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		
+		for (int i = 0; i < answers.size(); i++) {
+			String postid = answers.get(i);
+			NewFeatureOfAnswer2 foq = Features.get(postid);
+			ps.println(foq.getScore() + " "
+					+ foq.getUserRep() + " " + foq.getUserAnswCount());
+		}
+	}
+	
+	
+	public static void main(String argv[]) {
+		NewAnswerFeatureFinder2 uff = new NewAnswerFeatureFinder2();
+		uff.findAllFeatures();
+		uff.outputAllFeatures();
+	}
+
+}

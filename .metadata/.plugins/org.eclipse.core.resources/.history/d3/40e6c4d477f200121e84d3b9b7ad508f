@@ -1,0 +1,15 @@
+import java.io.File;
+
+
+public class sofseesee {
+	public void scan()
+	{
+		File file=new File("posts.xml");
+		
+	}
+	
+	public static void main(String args[])
+	{
+		
+	}
+}

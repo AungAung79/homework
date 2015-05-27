@@ -1,0 +1,75 @@
+package ics.justForTest;
+
+import java.io.File;
+
+import com.nativelibs4java.opencl.*;
+import com.nativelibs4java.opencl.CLMem.Usage;
+import com.nativelibs4java.util.*;
+
+import org.bridj.Pointer;
+
+
+public class Matrix {
+
+	public static void main(String[] args) {
+        CLContext context = JavaCL.createBestContext();
+        CLQueue queue = context.createDefaultQueue();
+        
+        float[][] A = {{0.2368f,0.2471f,0.2568f,1.2671f},
+				{1.1161f,0.1254f,0.1397f,0.1490f},
+				{0.1582f,1.1675f,0.1768f,0.1871f},
+				{0.1968f,0.2071f,1.2168f,0.2271f}};
+        
+        int n = 10;
+
+        // Create OpenCL input buffers (using the native memory pointers aPtr and bPtr) :
+        CLBuffer<Float> 
+            a = context.createFloatBuffer(Usage.InputOutput, n * n),
+            b = context.createFloatBuffer(Usage.InputOutput, n * n),
+            tempBuf = context.createFloatBuffer(Usage.Output, n * n);
+
+        // Create an OpenCL output buffer :
+        CLBuffer<Float> out = context.createFloatBuffer(Usage.InputOutput, n * n);
+
+        try
+        {
+        	// Read the program sources and compile them :
+        	String src = IOUtils.readText(new File("openCL/MatrixMultiply.cl"));
+        	CLProgram program = context.createProgram(src);
+        	
+        	long ct = System.currentTimeMillis();
+        	// Get and call the kernel :
+        	CLKernel fillInValuesKernel = program.createKernel("fill_in_values");
+        	fillInValuesKernel.setArgs(a, b, n);
+        	CLEvent fillEvt = fillInValuesKernel.enqueueNDRange(queue, new int[] { n, n });
+        	
+        	CLKernel addFloatsKernel = program.createKernel("add_floats");
+        	addFloatsKernel.setArgs(a, b, out, n);
+        	CLEvent addEvt = addFloatsKernel.enqueueNDRange(queue, new int[] { n, n }, fillEvt);
+        	
+        	addFloatsKernel.setArgs(out, b, tempBuf, n);
+        	CLEvent addEvt2 = addFloatsKernel.enqueueNDRange(queue, new int[] { n, n }, addEvt);
+        
+        	Pointer<Float> outPtr = tempBuf.read(queue, addEvt2); // blocks until add_floats finished
+
+        	ct = System.currentTimeMillis() - ct;
+        	
+        	System.out.println("Time: " + ct + " ms");
+        	
+        	// Print the first n output values :
+        	for (int i = 0; i < n; i++)
+        	{
+        		for (int j = 0; j < n; j++)
+        		{
+        			System.out.print("[" + i + "," + j + "] = " + outPtr.get(i * n + j) + "\t");
+        		}
+        		System.out.println();
+        	}
+        } catch(Exception e)
+        {
+        	System.out.println(e);
+        }
+
+	}
+
+}

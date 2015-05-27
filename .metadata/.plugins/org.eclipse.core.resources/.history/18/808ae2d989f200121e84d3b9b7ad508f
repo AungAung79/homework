@@ -1,0 +1,43 @@
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+
+
+public class sofseesee {
+	public void scan()
+	{
+		File file=new File("posts.xml");
+		String line=new String();
+		try {
+			BufferedReader reader1=new BufferedReader(new FileReader(file));
+			FileOutputStream out = new FileOutputStream("Questions4Words.txt");
+			PrintStream ps = new PrintStream(out);
+			
+			line=reader1.readLine();
+			int linenum=1;
+			while(line!=null)
+			{
+				if(linenum<1000)
+					ps.println(line);
+				else
+					break;
+				linenum++;
+				line=reader1.readLine();
+			}
+			reader1.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public static void main(String args[])
+	{
+		sofseesee sof=new sofseesee();
+		sof.scan();
+	}
+}

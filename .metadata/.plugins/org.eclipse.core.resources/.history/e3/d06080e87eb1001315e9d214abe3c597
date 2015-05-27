@@ -1,0 +1,616 @@
+package ics.alg.BPMFThread;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.PrintWriter;
+import java.util.Random;
+
+import org.la4j.LinearAlgebra;
+import org.la4j.inversion.MatrixInverter;
+import org.la4j.matrix.Matrix;
+import org.la4j.matrix.dense.Basic2DMatrix;
+import org.la4j.vector.Vector;
+import org.la4j.vector.dense.BasicVector;
+
+import dr.math.distributions.MultivariateNormalDistribution;
+import dr.math.distributions.WishartDistribution;
+
+public class Gibbs {
+	int N;
+	int M;
+	int D;
+	double[][] U;
+	double[][] V;
+	Matrix UMatrix;
+	Matrix VMatrix;
+	double[][] R;
+	boolean[][] I;
+	
+	int alphe;
+	Vector mu0;
+	double nu0;
+	Matrix w0;
+	double beta0;
+	double[][] Identity;
+	Matrix identityMatrix;
+	
+	Vector mu0Star;
+	double nu0Star;
+	Matrix w0Star;
+	double beta0Star;
+	
+	Matrix lamdaUMatrix;
+	Matrix lamdaVMatrix;
+	Vector muU;
+	Vector muV;
+	
+	Matrix lamdaUMatrixStar;
+	Matrix lamdaVMatrixStar;
+	Vector muUStar;
+	Vector muVStar;
+	
+	int iter;
+	Random rad;
+	
+	Matrix sumUMatrix;
+	Matrix sumVMatrix;
+	
+	long excuteTime;
+	
+	public Gibbs(int n, int m, int d, double[][] r, int it)
+	{
+		N = n;
+		M = m;
+		D = d;
+		U = new double[D][N];
+		V = new double[D][M];
+		R = new double[N][M];
+		I = new boolean[N][M];
+		iter = it;
+		rad = new Random();
+		Identity = new double[D][D];
+		for(int i = 0; i < N; i++)
+			for(int j = 0; j < M; j++)
+			{
+				R[i][j]= r[i][j];
+				if(r[i][j] == 0)
+					I[i][j] = false;
+				else {
+					I[i][j] = true;
+				}
+			}
+		for(int i = 0; i < D; i++)
+		{
+			Identity[i][i]= 1; 
+		}
+		identityMatrix = new Basic2DMatrix(Identity);
+		excuteTime = System.currentTimeMillis();
+	}
+	
+	public void init()
+	{
+		alphe = 2;
+		mu0 = new BasicVector(D);
+		for(int j = 0; j < D; j++)
+		{
+			mu0.set(j, 0);
+		}
+		nu0 = D;
+		w0 = identityMatrix;
+		beta0 = D;//do not know how to set the initial value,so just set it to D
+		
+		File file = new File("initvalue/P.txt");
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			String line;
+			int linenum = 0;
+			while((line = br.readLine()) != null)
+			{
+				String[] sp = line.split("\t");
+				for(int i = 0; i < sp.length; i++)
+				{
+					U[i][linenum] = Double.parseDouble(sp[i]);
+				}
+				linenum++;
+			}
+			br.close();
+			
+			file = new File("initvalue/Q.txt");
+			br = new BufferedReader(new FileReader(file));
+			linenum = 0;
+			while((line = br.readLine()) != null)
+			{
+				String[] sp = line.split("\t");
+				for(int i = 0; i < sp.length; i++)
+				{
+					V[i][linenum] = Double.parseDouble(sp[i]);
+				}
+				linenum++;
+			}
+			br.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+//		for(int i = 0; i < D; i++)
+//			for(int j = 0; j < N; j++)
+//			{
+//				U[i][j]= rad.nextDouble(); 
+//			}
+		
+//		for(int i = 0; i < D; i++)
+//			for(int j = 0; j < M; j++)
+//			{
+//				V[i][j]= rad.nextDouble(); 
+//			}
+		
+		UMatrix = new Basic2DMatrix(U);
+		VMatrix = new Basic2DMatrix(V);
+		
+		sumUMatrix = UMatrix.subtract(UMatrix);
+		sumVMatrix = VMatrix.subtract(VMatrix);
+	}
+	
+	public void sample()
+	{
+		File file = new File("result30beta0.csv");
+		PrintWriter pw;
+		try {
+			pw = new PrintWriter(file);
+			for(int it = 0; it < iter; it++)
+			{
+				System.out.println(it + 1);
+				
+				sampleTheta();
+				System.out.println("theta sample over!");
+				
+				for(int i = 0; i < N; i++)
+				{
+					sampleU(i);
+				}
+				System.out.println("U sample over!");
+				
+				for(int i = 0; i < M; i++)
+				{
+					sampleV(i);
+				}
+				System.out.println("V sample over!");
+				
+				if(it >= 800)
+				{
+					sumUMatrix = sumUMatrix.add(UMatrix);
+					sumVMatrix = sumVMatrix.add(VMatrix);
+					int count = it - 799;
+					if(count > 3 && ((count - 1) & count) == 0)
+					{
+						long time = System.currentTimeMillis() - excuteTime;
+						Matrix P = sumUMatrix.divide(count);
+						Matrix Q = sumVMatrix.divide(count);
+						double rmse = valid(P, Q);
+						pw.print(count+","+rmse+",");
+						rmse = test(P, Q);
+						pw.println(rmse+","+time);
+					}
+				}
+			}
+			pw.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public Matrix returnU()
+	{
+		return UMatrix;
+	}
+	
+	public Matrix returnV()
+	{
+		return VMatrix;
+	}
+	
+	public double valid(Matrix P, Matrix Q)
+	{
+		Matrix Rapp = P.transpose().multiply(Q);
+		File file = new File("MovieLens/u1.base");
+		double rmse = 0;
+		try
+		{
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			String line;
+			int linenum = 0;
+			double sum = 0;
+			while((line = br.readLine()) != null)
+			{
+				linenum++;
+				String[] sp = line.split("\t");
+				int user = Integer.parseInt(sp[0]);
+				int movie = Integer.parseInt(sp[1]);
+//				double rate = (Double.parseDouble(sp[2]) - 1) / 4.0;
+				double rate = Double.parseDouble(sp[2]);
+				double predice = Rapp.get(user - 1, movie - 1);
+				sum += (predice - rate) * (predice - rate);
+			}
+			rmse = Math.sqrt(sum / linenum);
+			br.close();
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		return rmse;
+	}
+	
+	public double test(Matrix P, Matrix Q)
+	{
+		Matrix Rapp = P.transpose().multiply(Q);
+		File file = new File("MovieLens/u1.test");
+		double rmse = 0;
+		try
+		{
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			String line;
+			int linenum = 0;
+			double sum = 0;
+			while((line = br.readLine()) != null)
+			{
+				linenum++;
+				String[] sp = line.split("\t");
+				int user = Integer.parseInt(sp[0]);
+				int movie = Integer.parseInt(sp[1]);
+//				double rate = (Double.parseDouble(sp[2]) - 1) / 4.0;
+				double rate = Double.parseDouble(sp[2]);
+				double predice = Rapp.get(user - 1, movie - 1);
+				sum += (predice - rate) * (predice - rate);
+			}
+			rmse = Math.sqrt(sum / linenum);
+			br.close();
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		return rmse;
+	}
+	
+	public void sampleTheta()
+	{
+		//sample thetaU
+		beta0 = (double)(N / D);
+		Vector Uba = new BasicVector(D);
+		for(int j = 0; j < D; j++)
+		{
+			Uba.set(j, 0);
+		}
+		Matrix Sba = new Basic2DMatrix(D, D);
+		for(int i = 0; i < D; i++)
+			for(int j = 0; j < D; j++)
+				Sba.set(i, j, 0);
+		
+		for(int i = 0; i < N; i++)
+		{
+			Vector ui = UMatrix.getColumn(i);
+			Uba = Uba.add(ui);
+		}
+		Uba = Uba.divide(N);
+		
+		for(int i = 0; i < N; i++)
+		{
+			Vector ui = UMatrix.getColumn(i);
+			Vector tempVector = ui.subtract(Uba);
+			Matrix temp = tempVector.outerProduct(tempVector);
+			Sba = Sba.add(temp);
+		}
+		Sba = Sba.divide(N);
+		
+		nu0Star = nu0 + N;
+		Vector tempUVector = mu0.subtract(Uba);
+		Matrix Utemp = tempUVector.outerProduct(tempUVector);
+		Utemp = Utemp.multiply(beta0 * N / (beta0 + N));
+		Matrix w0StarInverse = w0.add(Utemp).add(Sba.multiply(N));
+		MatrixInverter inverterW0star = w0StarInverse.withInverter(LinearAlgebra.GAUSS_JORDAN);
+		w0Star = inverterW0star.inverse();
+		beta0Star = beta0 + N;
+		mu0Star = (mu0.multiply(beta0).add(Uba.multiply(N))).divide(beta0Star);
+		
+		double[][] justTemp = new double[w0Star.rows()][w0Star.columns()];
+		for(int m = 0; m < w0Star.rows(); m++)
+			for(int n = 0; n < w0Star.columns(); n++)
+			{
+				justTemp[m][n] = w0Star.get(m, n);
+			}
+		
+		double[][] lam = WishartDistribution.nextWishart(nu0Star, justTemp);
+		lamdaUMatrix = new Basic2DMatrix(lam);
+		
+		MatrixInverter inverterU = lamdaUMatrix.multiply(beta0Star).withInverter(LinearAlgebra.GAUSS_JORDAN);
+		Matrix lamdaUMatrixInverse = inverterU.inverse();
+		
+		double[] vectorJustTemp = new double[mu0Star.length()];
+		for(int m = 0; m < mu0Star.length(); m++)
+			vectorJustTemp[m] = mu0Star.get(m);
+		justTemp = new double[lamdaUMatrixInverse.rows()][lamdaUMatrixInverse.columns()];
+		for(int m = 0; m < lamdaUMatrixInverse.rows(); m++)
+			for(int n = 0; n < lamdaUMatrixInverse.columns(); n++)
+			{
+				justTemp[m][n] = lamdaUMatrixInverse.get(m, n);
+			}
+		
+		double[] mu = MultivariateNormalDistribution.nextMultivariateNormalCholesky(vectorJustTemp, justTemp);
+		muU = new BasicVector(mu);
+		
+		//sample thetaV
+		beta0 = (double)(M / D);
+		Vector Vba = new BasicVector(D);
+		for(int j = 0; j < D; j++)
+		{
+			Vba.set(j, 0);
+		}
+		Sba = new Basic2DMatrix(D, D);
+		for(int i = 0; i < D; i++)
+			for(int j = 0; j < D; j++)
+				Sba.set(i, j, 0);
+		
+		for(int i = 0; i < M; i++)
+		{
+			Vector vi = VMatrix.getColumn(i);
+			Vba = Vba.add(vi);
+		}
+		Vba = Vba.divide(M);
+		
+		for(int i = 0; i < M; i++)
+		{
+			Vector vi = VMatrix.getColumn(i);
+			Vector tempVector = vi.subtract(Vba);
+			Matrix temp = tempVector.outerProduct(tempVector);
+			Sba = Sba.add(temp);
+		}
+		Sba = Sba.divide(M);
+		
+		nu0Star = nu0 + M;
+		Vector tempVVector = mu0.subtract(Vba);
+		Matrix Vtemp = tempVVector.outerProduct(tempVVector);
+		Vtemp = Vtemp.multiply(beta0 * M / (beta0 + M));
+		w0StarInverse = w0.add(Vtemp).add(Sba.multiply(M));
+		inverterW0star = w0StarInverse.withInverter(LinearAlgebra.GAUSS_JORDAN);
+		w0Star = inverterW0star.inverse();
+		beta0Star = beta0 + M;
+		mu0Star = (mu0.multiply(beta0).add(Vba.multiply(M))).divide(beta0Star);
+		
+		justTemp = new double[w0Star.rows()][w0Star.columns()];
+		for(int m = 0; m < w0Star.rows(); m++)
+			for(int n = 0; n < w0Star.columns(); n++)
+			{
+				justTemp[m][n] = w0Star.get(m, n);
+			}
+		
+		lam = WishartDistribution.nextWishart(nu0Star, justTemp);
+		lamdaVMatrix = new Basic2DMatrix(lam);
+		
+		MatrixInverter inverterV = lamdaVMatrix.multiply(beta0Star).withInverter(LinearAlgebra.GAUSS_JORDAN);
+		Matrix lamdaVMatrixInverse = inverterV.inverse();
+		
+		vectorJustTemp = new double[mu0Star.length()];
+		for(int m = 0; m < mu0Star.length(); m++)
+			vectorJustTemp[m] = mu0Star.get(m);
+		justTemp = new double[lamdaVMatrixInverse.rows()][lamdaVMatrixInverse.columns()];
+		for(int m = 0; m < lamdaVMatrixInverse.rows(); m++)
+			for(int n = 0; n < lamdaVMatrixInverse.columns(); n++)
+			{
+				justTemp[m][n] = lamdaVMatrixInverse.get(m, n);
+			}
+		
+		mu = MultivariateNormalDistribution.nextMultivariateNormalCholesky(vectorJustTemp, justTemp);
+		muV = new BasicVector(mu);
+	}
+	
+	public void sampleU(int i) 
+	{
+		Vector returnfeature;
+//		for(int j = 0; j < D; j++)
+//		{
+//			returnfeature.set(j, rad.nextGaussian());
+//		}
+		
+		lamdaUMatrixStar = lamdaUMatrix;
+		
+		for(int j = 0; j < M; j++)
+		{
+			if(I[i][j])
+			{
+				Vector vj = VMatrix.getColumn(j);
+				Matrix temp = vj.outerProduct(vj);
+				lamdaUMatrixStar = lamdaUMatrixStar.add(temp.multiply(alphe));
+			}
+		}
+		
+		if (lamdaUMatrixStar.rank() != D)
+			System.out.println(lamdaUMatrixStar.rank());
+		
+		MatrixInverter inverter = lamdaUMatrixStar.withInverter(LinearAlgebra.GAUSS_JORDAN);
+		Matrix lamdaUMatrixInverse = inverter.inverse();
+		
+		Vector temp = new BasicVector(D);
+		for(int j = 0; j < M; j++)
+		{
+			if(I[i][j])
+			{
+				Vector vj = VMatrix.getColumn(j);
+				temp = temp.add(vj.multiply(R[i][j]).multiply(alphe));
+			}
+		}
+		temp = temp.add(lamdaUMatrix.multiply(muU));
+		
+		muUStar = lamdaUMatrixInverse.multiply(temp);
+		
+		double[] vectorJustTemp = new double[muUStar.length()];
+		for(int m = 0; m < muUStar.length(); m++)
+			vectorJustTemp[m] = muUStar.get(m);
+		double[][] justTemp = new double[lamdaUMatrixInverse.rows()][lamdaUMatrixInverse.columns()];
+		for(int m = 0; m < lamdaUMatrixInverse.rows(); m++)
+			for(int n = 0; n < lamdaUMatrixInverse.columns(); n++)
+			{
+				justTemp[m][n] = lamdaUMatrixInverse.get(m, n);
+			}
+		
+		double[] mu = MultivariateNormalDistribution.nextMultivariateNormalCholesky(vectorJustTemp, justTemp);
+		
+		returnfeature = new BasicVector(mu);
+		
+		UMatrix.setColumn(i, returnfeature);
+	}
+	
+	public void sampleV(int i)
+	{
+		Vector returnfeature;
+//		for(int j = 0; j < D; j++)
+//		{
+//			returnfeature.set(j, rad.nextGaussian());
+//		}
+		
+		lamdaVMatrixStar = lamdaVMatrix;
+		
+		for(int j = 0; j < N; j++)
+		{
+			if(I[j][i])
+			{
+				Vector uj = UMatrix.getColumn(j);
+				Matrix temp = uj.outerProduct(uj);
+				lamdaVMatrixStar = lamdaVMatrixStar.add(temp.multiply(alphe));
+			}
+		}
+
+		if (lamdaVMatrixStar.rank() != D)
+			System.out.println(lamdaVMatrixStar.rank());
+		
+		MatrixInverter inverter = lamdaVMatrixStar.withInverter(LinearAlgebra.GAUSS_JORDAN);
+		Matrix lamdaVMatrixInverse = inverter.inverse();
+		
+		Vector temp = new BasicVector(D);
+		for(int j = 0; j < N; j++)
+		{
+			if(I[j][i])
+			{
+				Vector uj = UMatrix.getColumn(j);
+				temp = temp.add(uj.multiply(R[j][i]).multiply(alphe));
+			}
+		}
+		temp = temp.add(lamdaVMatrix.multiply(muV));
+		
+		muVStar = lamdaVMatrixInverse.multiply(temp);
+		
+		double[] vectorJustTemp = new double[muVStar.length()];
+		for(int m = 0; m < muVStar.length(); m++)
+			vectorJustTemp[m] = muVStar.get(m);
+		double[][] justTemp = new double[lamdaVMatrixInverse.rows()][lamdaVMatrixInverse.columns()];
+		for(int m = 0; m < lamdaVMatrixInverse.rows(); m++)
+			for(int n = 0; n < lamdaVMatrixInverse.columns(); n++)
+			{
+				justTemp[m][n] = lamdaVMatrixInverse.get(m, n);
+			}
+		
+		double[] mu = MultivariateNormalDistribution.nextMultivariateNormalCholesky(vectorJustTemp, justTemp);
+		
+		returnfeature = new BasicVector(mu);
+		
+		VMatrix.setColumn(i, returnfeature);
+	}
+	
+}
+
+class SampleU implements Runnable
+{
+	Matrix UMatrix;
+	Matrix VMatrix;
+	int N;
+	int M;
+	int D;
+	double alphe;
+	double[][] R;
+	boolean[][] I;
+	Matrix lamdaUMatrix;
+	Matrix lamdaUMatrixStar;
+	Vector muU;
+	Vector muUStar;
+	
+	public SampleU(Matrix uMatrix, Matrix vMatrix, int n, int m, int d, double al, double[][] r, boolean[][] i,
+			Matrix lamdauMatrix, Matrix lamdaumatrixStar, Vector muu, Vector muuStar)
+	{
+		UMatrix = uMatrix;
+		VMatrix = vMatrix;
+		N = n;
+		M = m;
+		D = d;
+		alphe = al;
+		R = r;
+		I = i;
+		lamdaUMatrix = lamdauMatrix;
+		lamdaUMatrixStar = lamdaumatrixStar;
+		muU = muu;
+		muUStar = muuStar;
+	}
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		for(int i = 0; i < N; i++)
+		{
+			sampleU(i);
+		}
+		System.out.println("U sample over!");
+	}
+	
+	public void sampleU(int i) 
+	{
+		Vector returnfeature;
+//		for(int j = 0; j < D; j++)
+//		{
+//			returnfeature.set(j, rad.nextGaussian());
+//		}
+		
+		lamdaUMatrixStar = lamdaUMatrix;
+		
+		for(int j = 0; j < M; j++)
+		{
+			if(I[i][j])
+			{
+				Vector vj = VMatrix.getColumn(j);
+				Matrix temp = vj.outerProduct(vj);
+				lamdaUMatrixStar = lamdaUMatrixStar.add(temp.multiply(alphe));
+			}
+		}
+		
+		if (lamdaUMatrixStar.rank() != D)
+			System.out.println(lamdaUMatrixStar.rank());
+		
+		MatrixInverter inverter = lamdaUMatrixStar.withInverter(LinearAlgebra.GAUSS_JORDAN);
+		Matrix lamdaUMatrixInverse = inverter.inverse();
+		
+		Vector temp = new BasicVector(D);
+		for(int j = 0; j < M; j++)
+		{
+			if(I[i][j])
+			{
+				Vector vj = VMatrix.getColumn(j);
+				temp = temp.add(vj.multiply(R[i][j]).multiply(alphe));
+			}
+		}
+		temp = temp.add(lamdaUMatrix.multiply(muU));
+		
+		muUStar = lamdaUMatrixInverse.multiply(temp);
+		
+		double[] vectorJustTemp = new double[muUStar.length()];
+		for(int m = 0; m < muUStar.length(); m++)
+			vectorJustTemp[m] = muUStar.get(m);
+		double[][] justTemp = new double[lamdaUMatrixInverse.rows()][lamdaUMatrixInverse.columns()];
+		for(int m = 0; m < lamdaUMatrixInverse.rows(); m++)
+			for(int n = 0; n < lamdaUMatrixInverse.columns(); n++)
+			{
+				justTemp[m][n] = lamdaUMatrixInverse.get(m, n);
+			}
+		
+		double[] mu = MultivariateNormalDistribution.nextMultivariateNormalCholesky(vectorJustTemp, justTemp);
+		
+		returnfeature = new BasicVector(mu);
+		
+		UMatrix.setColumn(i, returnfeature);
+	}
+	
+}

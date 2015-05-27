@@ -1,0 +1,60 @@
+package ics.alg.BPMF;
+
+import java.io.File;
+
+import com.nativelibs4java.opencl.*;
+import com.nativelibs4java.opencl.CLMem.Usage;
+import com.nativelibs4java.util.*;
+import org.bridj.Pointer;
+
+
+public class Matrix {
+
+	public static void main(String[] args) {
+        CLContext context = JavaCL.createBestContext();
+        CLQueue queue = context.createDefaultQueue();
+        
+        int n = 1024;
+
+        // Create OpenCL input buffers (using the native memory pointers aPtr and bPtr) :
+        CLBuffer<Float> 
+            a = context.createFloatBuffer(Usage.InputOutput, n * n),
+            b = context.createFloatBuffer(Usage.InputOutput, n * n);
+
+        // Create an OpenCL output buffer :
+        CLBuffer<Float> out = context.createFloatBuffer(Usage.Output, n * n);
+
+        try
+        {
+        	// Read the program sources and compile them :
+        	String src = IOUtils.readText(new File("openCL/MatrixMultiply.cl"));
+        	CLProgram program = context.createProgram(src);
+        	
+        	long ct = System.currentTimeMillis();
+        	// Get and call the kernel :
+        	CLKernel fillInValuesKernel = program.createKernel("fill_in_values");
+        	fillInValuesKernel.setArgs(a, b, n);
+        	CLEvent fillEvt = fillInValuesKernel.enqueueNDRange(queue, new int[] { n, n });
+        	
+        	CLKernel addFloatsKernel = program.createKernel("add_floats");
+        	addFloatsKernel.setArgs(a, b, out, n);
+        	CLEvent addEvt = addFloatsKernel.enqueueNDRange(queue, new int[] { n, n }, fillEvt);
+        
+        	Pointer<Float> outPtr = out.read(queue, addEvt); // blocks until add_floats finished
+
+        	ct = System.currentTimeMillis() - ct;
+        	
+        	System.out.println("Time: " + ct + " ms");
+        	
+        	// Print the first n output values :
+//        	for (int i = 0; i < n; i++)
+//        		for (int j = 0; j < n; j++)
+//        			System.out.println("out[" + i + "," + j + "] = " + outPtr.get(i * n + j));
+        } catch(Exception e)
+        {
+        	System.out.println(e);
+        }
+
+	}
+
+}

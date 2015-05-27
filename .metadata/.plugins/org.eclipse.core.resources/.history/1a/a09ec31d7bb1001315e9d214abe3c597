@@ -1,0 +1,125 @@
+package ics.alg.BPMFThread;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+
+import org.la4j.matrix.Matrix;
+
+public class BPMFTest {
+	int N = 943;
+	int M = 1682;
+	double[][] R = new double[N][M];
+	int D = 30;
+	int iter = 1312;
+	
+	Matrix UMatrix;
+	Matrix VMatrix;
+	
+	public void scan()
+	{
+		File file = new File("MovieLens/u1.base");
+		try
+		{
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			String line;
+			while((line = br.readLine()) != null)
+			{
+				String[] sp = line.split("\t");
+				int user = Integer.parseInt(sp[0]);
+				int movie = Integer.parseInt(sp[1]);
+				double rate = Double.parseDouble(sp[2]);
+//				R[user - 1][movie - 1] = (rate - 1) / 4.0;
+				R[user - 1][movie - 1] = rate;
+			}
+			br.close();
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void train()
+	{
+		Gibbs gi = new Gibbs(N, M, D, R, iter);
+		gi.init();
+		gi.sample();
+//		UMatrix = gi.returnU();
+//		VMatrix = gi.returnV();
+	}
+	
+//	public double valid()
+//	{
+//		Matrix Rapp = UMatrix.transpose().multiply(VMatrix);
+//		File file = new File("MovieLens/u1.base");
+//		double rmse = 0;
+//		try
+//		{
+//			BufferedReader br = new BufferedReader(new FileReader(file));
+//			String line;
+//			int linenum = 0;
+//			double sum = 0;
+//			while((line = br.readLine()) != null)
+//			{
+//				linenum++;
+//				String[] sp = line.split("\t");
+//				int user = Integer.parseInt(sp[0]);
+//				int movie = Integer.parseInt(sp[1]);
+//				double rate = (Double.parseDouble(sp[2]) - 1) / 4.0;
+//				double predice = Rapp.get(user - 1, movie - 1);
+//				sum += (predice - rate) * (predice - rate);
+//			}
+//			rmse = Math.sqrt(sum / linenum);
+//			br.close();
+//		}catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		return rmse;
+//	}
+//	
+//	public double test()
+//	{
+//		Matrix Rapp = UMatrix.transpose().multiply(VMatrix);
+//		File file = new File("MovieLens/u1.test");
+//		double rmse = 0;
+//		try
+//		{
+//			BufferedReader br = new BufferedReader(new FileReader(file));
+//			String line;
+//			int linenum = 0;
+//			double sum = 0;
+//			while((line = br.readLine()) != null)
+//			{
+//				linenum++;
+//				String[] sp = line.split("\t");
+//				int user = Integer.parseInt(sp[0]);
+//				int movie = Integer.parseInt(sp[1]);
+//				double rate = (Double.parseDouble(sp[2]) - 1) / 4.0;
+//				double predice = Rapp.get(user - 1, movie - 1);
+//				sum += (predice - rate) * (predice - rate);
+//			}
+//			rmse = Math.sqrt(sum / linenum);
+//			br.close();
+//		}catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		return rmse;
+//	}
+	
+	public static void main(String[] args)
+	{
+		BPMFTest bpmf = new BPMFTest();
+		bpmf.scan();
+		System.out.println("read over!");
+		
+		bpmf.train();
+		System.out.println("train over!");
+		
+//		double rmse = bpmf.valid();
+//		System.out.println("valid over!");
+//		System.out.println(rmse);
+//		
+//		rmse = bpmf.test();
+//		System.out.println("test over!");
+//		System.out.println(rmse);
+	}
+}

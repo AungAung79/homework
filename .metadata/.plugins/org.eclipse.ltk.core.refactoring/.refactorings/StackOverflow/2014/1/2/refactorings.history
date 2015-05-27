@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy 2 elements to &apos;CodeDealing/src/org.ics.llc.dataProcess&apos;&#x0D;&#x0A;- Original project: &apos;StackOverflow&apos;&#x0D;&#x0A;- Destination element: &apos;CodeDealing/src/org.ics.llc.dataProcess&apos;&#x0D;&#x0A;- Original elements:&#x0D;&#x0A;     org.ics.llc.dataProcess.ParseTest.java&#x0D;&#x0A;     org.ics.llc.dataProcess.PostsHandler4Words.java" description="Copy compilation units" destination="=CodeDealing/src&lt;org.ics.llc.dataProcess" element1="/src&lt;org.ics.llc.dataProcess{ParseTest.java" element2="/src&lt;org.ics.llc.dataProcess{PostsHandler4Words.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1388916464931" units="2" version="1.0"/>
+</session>

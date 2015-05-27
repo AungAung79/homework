@@ -1,0 +1,228 @@
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.StringTokenizer;
+
+public class stat {
+	private ArrayList<String> all=new ArrayList<String>();
+	private HashMap<String,Integer> allHashSet=new HashMap<String,Integer>();
+	private ArrayList<Integer> dic=new ArrayList<Integer>();
+	
+	public boolean filt(String s)
+	{
+		if(s.length()<2 || s.length()>=15 )
+			return false;
+		if(s.contains("<") || s.contains(">") || s.contains("-") || s.contains("'") || s.contains(".") || s.contains("/")
+				|| s.contains("@") || s.contains("#") || s.contains("_") || s.contains(":") || s.contains(",")
+				|| s.contains("\\") || s.contains("*") || s.contains("`"))
+			return false;
+		if(s.contains("0") || s.contains("1") || s.contains("2") || s.contains("3") || s.contains("4") || s.contains("5")
+				|| s.contains("6") || s.contains("7") || s.contains("8") || s.contains("9"))
+			return false;
+		return true;
+	}
+	
+	public boolean check(String s)
+	{
+		if(allHashSet.containsKey(s)){
+			return true;
+		}
+		else
+			return false;
+	}
+	
+	public int check2(String s)
+	{
+		for(int i=0;i<all.size();i++)
+		{
+			if(all.get(i).equals(s))
+				return i;
+		}
+		return -1;
+	}
+	
+	public void add(String s)
+	{
+		all.add(s);
+		allHashSet.put(s,1);
+	}
+	
+	public void scan()
+	{
+		File file1=new File("Questions4Words.txt");
+		String line=new String();
+		try {
+			BufferedReader reader1=new BufferedReader(new InputStreamReader(new FileInputStream(file1)));
+			line=reader1.readLine();
+			int linenum1=1;
+			while(line!=null)
+			{
+				boolean flag=false;
+				StringTokenizer st = new StringTokenizer( line," " );
+				String word=st.nextToken();
+				//System.out.print(word);
+				if(linenum1%10000==0)
+				{
+					System.out.println(linenum1+" "+all.size());
+				}
+				while(st.hasMoreTokens())
+				{
+					word=st.nextToken();
+					if(filt(word))
+					{
+						if(!check(word))
+							add(word);
+						else {
+							if(!flag)
+							{
+								allHashSet.put(word, allHashSet.get(word)+1);
+								flag=true;
+							}
+						}
+					}
+				}
+				line=reader1.readLine();
+				linenum1++;
+			}
+			reader1.close();
+			System.out.println("file1 over!");
+			for(int i=all.size()-1;i>=0;i--)
+			{
+				String heheString=all.get(i);
+				if(allHashSet.get(heheString)<50)
+				{
+					all.remove(i);
+					allHashSet.remove(heheString);
+					System.out.println(all.size());
+				}
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void print()
+	{
+		File file=new File("Q&Astat1.txt");
+		PrintWriter pw;
+		try {
+			pw = new PrintWriter(file);
+			for (String aString : all) {
+				pw.print(aString+" ");
+				pw.println(allHashSet.get(aString));
+			}
+			pw.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("print over!");
+	}
+	
+	public void scan2()
+	{
+		System.out.println(all.size());
+		for (int i = 0; i < all.size(); i++) {
+			dic.add(0);
+		}
+		File file1=new File("Questions4Words.txt");
+		File file2=new File("Answers4Words.txt");
+		File file3=new File("Q&Astat4Q.txt");
+		File file4=new File("Q&Astat4A.txt");
+		String line=new String();
+		try {
+			BufferedReader reader1=new BufferedReader(new InputStreamReader(new FileInputStream(file1)));
+			PrintWriter pw1 = new PrintWriter(file3);
+			line=reader1.readLine();
+			int linenum=1;
+			while(line!=null)
+			{
+				StringTokenizer st = new StringTokenizer( line," " );
+				String word=st.nextToken();
+				if(linenum%10000==0)
+				{
+					System.out.println(linenum);
+				}
+				while(st.hasMoreTokens())
+				{
+					word=st.nextToken();
+					if(filt(word))
+					{
+						if(check(word))
+						{
+							int temp=check2(word);
+							if(temp!=-1)
+							{
+								dic.set(temp, (dic.get(temp)+1));
+							}
+						}
+					}
+				}
+				for (int i = 1; i <= dic.size(); i++) {
+					if(dic.get(i-1)>=1)
+					{
+						pw1.println(linenum+" "+i+" "+dic.get(i-1));
+					}
+					dic.set((i-1), 0);
+				}
+				line=reader1.readLine();
+				linenum++;
+			}
+			reader1.close();
+			pw1.close();
+			System.out.println("file1 over");
+			BufferedReader reader2=new BufferedReader(new InputStreamReader(new FileInputStream(file2)));
+			PrintWriter pw2 = new PrintWriter(file4);
+			line=reader2.readLine();
+			linenum=1;
+			while(line!=null)
+			{
+				StringTokenizer st = new StringTokenizer( line," " );
+				String word=st.nextToken();
+				if(linenum%10000==0)
+				{
+					System.out.println(linenum);
+				}
+				while(st.hasMoreTokens())
+				{
+					word=st.nextToken();
+					if(filt(word))
+					{
+						if(check(word))
+						{
+							int temp=check2(word);
+							if(temp!=-1)
+							{
+								dic.set(temp, (dic.get(temp)+1));
+							}
+						}
+					}
+				}
+				for (int i = 1; i <= dic.size(); i++) {
+					if(dic.get(i-1)>=1)
+					{
+						pw2.println(linenum+" "+i+" "+dic.get(i-1));
+					}
+					dic.set((i-1), 0);
+				}
+				line=reader2.readLine();
+				linenum++;
+			}
+			reader2.close();
+			pw2.close();
+			System.out.println("file2 over");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+}
