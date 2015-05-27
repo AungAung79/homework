@@ -1,0 +1,80 @@
+<p>i have got an assignment here where i am supposed to </p>
+
+<blockquote>
+  <p>create an application, which copies the all the pasteboard items into
+  a table, that drills down into a detail view of said pasteboard item</p>
+</blockquote>
+
+<p>.</p>
+
+<p>below, i give you my code of the <code>rootviewcontroller.m</code> file. the program does not work and gives me an error of <code>sigabrt</code> in this line <code>cell.textlabel.text = cellvalue;</code>.
+could you tell me please, what could be possibly wrong here and thank you in advance.</p>
+
+<pre><code>#import "rootviewcontroller.h"
+
+@implementation rootviewcontroller
+@synthesize detailsviewcontroller;
+
+nsarray* pasteboarditems;
+
+- (void)viewdidload
+{
+    //  get a reference to the system pasteboard
+    uipasteboard* pasteboard = [uipasteboard generalpasteboard];
+
+    nslog(@"%@", pasteboard.items);
+
+    pasteboarditems = [pasteboard.items valueforkey:@"public.utf8-plain-text"];
+    pasteboarditems = [pasteboard.items valueforkey:@"public.item (kuttypeitem)"];
+
+    self.navigationitem.title = @"pasteboard";
+
+    [super viewdidload];
+}
+
+- (void)dealloc
+{
+    [pasteboarditems release];
+    [super dealloc];
+}
+
+- (nsinteger)tableview:(uitableview *)tableview numberofrowsinsection:(nsinteger)section
+{
+    return [pasteboarditems count];
+}
+
+// customize the appearance of table view cells.
+- (uitableviewcell *)tableview:(uitableview *)tableview cellforrowatindexpath:(nsindexpath *)indexpath
+{
+    static nsstring *cellidentifier = @"cell";
+
+    uitableviewcell *cell = [tableview dequeuereusablecellwithidentifier:cellidentifier];
+    if (cell == nil) {
+        cell = [[[uitableviewcell alloc] initwithstyle:uitableviewcellstyledefault reuseidentifier:cellidentifier] autorelease];
+    }
+
+   nsstring *cellvalue = [pasteboarditems objectatindex:indexpath.row];
+    cell.textlabel.text = cellvalue;
+
+    // configure the cell.
+    return cell;
+}
+
+- (void)tableview:(uitableview *)tableview didselectrowatindexpath:(nsindexpath *)indexpath
+{
+    nsuinteger row = [indexpath row];
+    nsstring *rowvalue = [pasteboarditems objectatindex:row];
+    nsstring *message = [[nsstring alloc] initwithformat:@"you have selected \"%@\"",rowvalue];
+
+    if(self.detailsviewcontroller == nil){
+        detailsviewcontroller *d = [[detailsviewcontroller alloc] initwithnibname:@"detailsviewcontroller" bundle:[nsbundle mainbundle]];
+
+        self.detailsviewcontroller = d;
+        [d release];
+    }
+    [self.detailsviewcontroller initwithtextselected:message];
+    [self.navigationcontroller pushviewcontroller:self.detailsviewcontroller animated:yes];
+}
+
+@end
+</code></pre>
