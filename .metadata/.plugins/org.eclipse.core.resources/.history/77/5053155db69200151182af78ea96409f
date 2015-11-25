@@ -1,0 +1,30 @@
+package org.ics.llc.languageRelated;
+
+public enum LanguageType {
+	CSharp,
+	CPlusPlus,
+	C,
+	CSS,
+	HTML,
+	Java,
+	JavaScript,
+	ObjectiveC,
+	PHP,
+	Perl,
+	Python,
+	Ruby,
+	SQL;
+	
+	LanguageType(String name, int id)
+	{
+		
+	}
+	
+	public String toString()
+	{
+		if(LanguageType == LanguageType.C)
+		{
+			return "c";
+		}
+	}
+}

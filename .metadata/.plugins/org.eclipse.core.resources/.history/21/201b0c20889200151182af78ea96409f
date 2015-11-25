@@ -1,0 +1,83 @@
+package org.ics.llc.languageTagNaiveBayes;
+
+import org.ics.llc.languageRelated.LanguageType;
+
+public class TagSelect {
+
+	public LanguageType decideType(String s)
+	{
+		if(s.equals("c#"))
+		{
+			return LanguageType.CSharp;
+		}
+		else if(s.equals("apache"))
+		{
+			return LanguageType.Apache;
+		}
+		else if(s.equals("c++"))
+		{
+			return LanguageType.CPlusPlus;
+		}
+		else if(s.equals("c"))
+		{
+			return LanguageType.C;
+		}
+		else if(s.equals("css"))
+		{
+			return LanguageType.CSS;
+		}
+		else if(s.equals("html"))
+		{
+			return LanguageType.HTMLXML;
+		}
+		else if(s.equals("xml"))
+		{
+			return LanguageType.HTMLXML;
+		}
+		else if(s.equals("http"))
+		{
+			return LanguageType.HTTP;
+		}
+		else if(s.equals("json"))
+		{
+			return LanguageType.JSON;
+		}
+		else if(s.equals("java"))
+		{
+			return LanguageType.Java;
+		}
+		else if(s.equals("javascript"))
+		{
+			return LanguageType.JavaScript;
+		}
+		else if(s.equals("objective-c"))
+		{
+			return LanguageType.ObjectiveC;
+		}
+		else if(s.equals("php"))
+		{
+			return LanguageType.PHP;
+		}
+		else if(s.equals("perl"))
+		{
+			return LanguageType.Perl;
+		}
+		else if(s.equals("python"))
+		{
+			return LanguageType.Python;
+		}
+		else if(s.equals("ruby"))
+		{
+			return LanguageType.Ruby;
+		}
+		else if(s.equals("sql"))
+		{
+			return LanguageType.SQL;
+		}
+		else {
+			return null;
+		}
+	}
+	
+	
+}

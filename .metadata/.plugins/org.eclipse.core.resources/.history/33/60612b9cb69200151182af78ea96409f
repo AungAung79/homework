@@ -1,0 +1,31 @@
+package org.ics.llc.languageRelated;
+
+public enum LanguageType {
+	CSharp("c#",0),
+	CPlusPlus("c++",0),
+	C("c",0),
+	CSS("css",0),
+	HTML("html",0),
+	Java("java",0),
+	JavaScript("javascript",0),
+	ObjectiveC("objective-c",0),
+	PHP("c#",0),
+	Perl("c#",0),
+	Python("c#",0),
+	Ruby("c#",0),
+	SQL("c#",0);
+	
+	private String _name;
+	private int _id;
+	
+	LanguageType(String name, int id)
+	{
+		_name = name;
+		_id = id;
+	}
+	
+	public String toString()
+	{
+		return _name;
+	}
+}

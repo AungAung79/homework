@@ -1,0 +1,17 @@
+package org.ics.llc.languageRelated;
+
+public enum LanguageType {
+	C#,
+	CPlusPlus,
+	C,
+	CSS,
+	HTML,
+	Java,
+	JavaScript,
+	ObjectiveC,
+	PHP,
+	Perl,
+	Python,
+	Ruby,
+	SQL
+}
