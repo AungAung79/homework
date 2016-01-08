@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy element &apos;TagNB.java&apos; to &apos;CodeDealing/src/org.ics.llc.TextMatarTagNB&apos;&#x0A;- Original project: &apos;CodeDealing&apos;&#x0A;- Destination element: &apos;CodeDealing/src/org.ics.llc.TextMatarTagNB&apos;&#x0A;- Original element: &apos;org.ics.llc.languageTagNaiveBayes.TagNB.java&apos;" description="Copy compilation unit" destination="/src&lt;org.ics.llc.TextMatarTagNB" element1="/src&lt;org.ics.llc.languageTagNaiveBayes{TagNB.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1451307235484" units="1" version="1.0"/>
+</session>
