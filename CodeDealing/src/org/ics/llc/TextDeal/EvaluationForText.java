@@ -7,7 +7,7 @@ import java.util.HashMap;
 
 public class EvaluationForText {
 	String origin = "/Users/jimmy/StackOverflow/parsed-data/QuestionsLanguageType.txt";
-	String predict = "/Users/jimmy/StackOverflow/parsed-data/Method4/PredictedLabel2.txt";
+	String predict = "/Users/jimmy/StackOverflow/parsed-data/Method4/PredictedLabel2_new.txt";
 	int fileNum = 0;
 	
 	public void judgeMatrix()
